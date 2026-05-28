@@ -3,7 +3,8 @@ import os
 from pathlib import Path
 from typing import Optional
 import yaml
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -49,6 +50,24 @@ class Settings(BaseSettings):
     cache_ttl: int = Field(default=3600, env="CACHE_TTL")
     cache_backend: str = "memory"
     redis_url: str = "redis://localhost:6379"
+
+    # Cache Tiers (Multi-tier caching for local-first RAG)
+    cache_l1_max_size: int = Field(default=1000, env="CACHE_L1_MAX_SIZE")
+    cache_l1_ttl: int = Field(default=3600, env="CACHE_L1_TTL")
+    cache_l2_enabled: bool = Field(default=True, env="CACHE_L2_ENABLED")
+    cache_l2_path: str = Field(default="/data/cache", env="CACHE_L2_PATH")
+    cache_l2_max_size_mb: int = Field(default=500, env="CACHE_L2_MAX_SIZE_MB")
+
+    # Embedding Configuration
+    embedding_cache_enabled: bool = True
+    embedding_cache_ttl: int = 7200
+    embedding_batch_size: int = Field(default=32, env="EMBEDDING_BATCH_SIZE")
+    embedding_device: str = Field(default="auto", env="EMBEDDING_DEVICE")
+
+    # Semantic Chunking
+    semantic_chunking_enabled: bool = False
+    semantic_similarity_threshold: float = 0.85
+    chunk_semantic_window: int = 3
 
     # LLM
     llm_model: str = Field(default="claude-opus-4-6", env="LLM_MODEL")
@@ -113,6 +132,16 @@ def validate_settings(settings: Settings) -> bool:
 
     if settings.rate_limit_requests < 1:
         errors.append("rate_limit_requests must be at least 1")
+
+    # Cache validation
+    if settings.cache_l1_max_size <= 0:
+        errors.append("cache_l1_max_size must be positive")
+
+    if settings.cache_l2_max_size_mb <= 0:
+        errors.append("cache_l2_max_size_mb must be positive")
+
+    if settings.embedding_batch_size <= 0:
+        errors.append("embedding_batch_size must be positive")
 
     if errors:
         raise ValueError(f"Settings validation failed:\n" + "\n".join(errors))
