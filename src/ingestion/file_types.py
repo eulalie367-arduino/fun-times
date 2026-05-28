@@ -2,174 +2,114 @@
 from enum import Enum
 from pathlib import Path
 from typing import Optional
-import logging
+
+from src.logger import get_logger
+from src.exceptions import IngestError
+
+
+logger = get_logger(__name__)
 
 
 class FileType(Enum):
-    """Supported document file types."""
+    """Supported file types for document ingestion."""
     PDF = "pdf"
     DOCX = "docx"
+    DOC = "doc"
     TXT = "txt"
-    MD = "md"
+    MARKDOWN = "md"
     JSON = "json"
     UNKNOWN = "unknown"
 
 
 class FileTypeDetector:
-    """
-    Detect document file type using magic bytes and file extensions.
+    """Detect document file types by extension and magic bytes."""
 
-    Supports detection of PDF, DOCX, TXT, MD, and JSON files.
-    Uses magic bytes (file headers) for reliable type detection.
-    """
-
-    # Magic bytes for different file types
     MAGIC_BYTES = {
-        FileType.PDF: b'%PDF',
-        FileType.DOCX: b'PK\x03\x04',  # ZIP signature (DOCX is ZIP)
-        FileType.JSON: b'{',
+        b'%PDF': FileType.PDF,
+        b'PK\x03\x04': FileType.DOCX,
+        b'\xd0\xcf\x11\xe0': FileType.DOC,
     }
 
-    # File extensions as fallback
     EXTENSION_MAP = {
         '.pdf': FileType.PDF,
         '.docx': FileType.DOCX,
+        '.doc': FileType.DOC,
         '.txt': FileType.TXT,
-        '.md': FileType.MD,
-        '.markdown': FileType.MD,
+        '.md': FileType.MARKDOWN,
+        '.markdown': FileType.MARKDOWN,
         '.json': FileType.JSON,
     }
 
-    def __init__(self):
-        """Initialize the file type detector."""
-        self.logger = logging.getLogger(__name__)
-
-    def detect(self, file_path: Path) -> FileType:
-        """
-        Detect file type using magic bytes or extension.
-
-        Args:
-            file_path: Path to the file to detect
-
-        Returns:
-            FileType enum value
-
-        Raises:
-            FileNotFoundError: If file does not exist
-        """
-        if isinstance(file_path, str):
+    @classmethod
+    def detect_from_path(cls, file_path: Path) -> FileType:
+        """Detect file type from file path."""
+        if not isinstance(file_path, Path):
             file_path = Path(file_path)
 
-        if not file_path.exists():
-            raise FileNotFoundError(f"File not found: {file_path}")
-
-        # Try magic bytes detection first
-        file_type = self._detect_by_magic_bytes(file_path)
-        if file_type != FileType.UNKNOWN:
+        extension = file_path.suffix.lower()
+        if extension in cls.EXTENSION_MAP:
+            file_type = cls.EXTENSION_MAP[extension]
+            logger.msg("file_type_detected", path=str(file_path), type=file_type.value)
             return file_type
 
-        # Fallback to extension detection
-        file_type = self._detect_by_extension(file_path)
-        if file_type != FileType.UNKNOWN:
-            return file_type
+        try:
+            file_type = cls.detect_from_content(file_path)
+            if file_type != FileType.UNKNOWN:
+                return file_type
+        except Exception as e:
+            logger.msg("file_type_detection_error", path=str(file_path), error=str(e))
 
-        self.logger.warning(
-            f"Could not detect file type for {file_path}, "
-            "defaulting to UNKNOWN"
-        )
         return FileType.UNKNOWN
 
-    def _detect_by_magic_bytes(self, file_path: Path) -> FileType:
-        """
-        Detect file type by reading magic bytes from file header.
-
-        Args:
-            file_path: Path to the file
-
-        Returns:
-            FileType if detected, FileType.UNKNOWN otherwise
-        """
+    @classmethod
+    def detect_from_content(cls, file_path: Path, bytes_to_read: int = 512) -> FileType:
+        """Detect file type from file content magic bytes."""
         try:
             with open(file_path, 'rb') as f:
-                header = f.read(4)
+                header = f.read(bytes_to_read)
 
-            # Check PDF
-            if header.startswith(self.MAGIC_BYTES[FileType.PDF]):
-                return FileType.PDF
+            for magic_bytes, file_type in cls.MAGIC_BYTES.items():
+                if header.startswith(magic_bytes):
+                    return file_type
 
-            # Check DOCX (ZIP format)
-            if header.startswith(self.MAGIC_BYTES[FileType.DOCX]):
-                # DOCX files are ZIP archives with specific structure
-                # Additional validation could check for [Content_Types].xml
-                if self._is_valid_docx(file_path):
-                    return FileType.DOCX
-
-            # Check JSON (can start with { or [)
-            if header.startswith(b'{') or header.startswith(b'['):
-                try:
-                    # Verify it's valid JSON
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        f.read(1)  # Try to read first char
+            try:
+                header.decode('utf-8')
+                if header.strip().startswith(b'{') or header.strip().startswith(b'['):
                     return FileType.JSON
-                except (UnicodeDecodeError, IOError):
-                    pass
+                return FileType.TXT
+            except UnicodeDecodeError:
+                pass
 
-        except (IOError, OSError) as e:
-            self.logger.debug(f"Error reading file header: {e}")
+        except Exception as e:
+            logger.msg("content_detection_error", error=str(e))
 
         return FileType.UNKNOWN
 
-    def _is_valid_docx(self, file_path: Path) -> bool:
-        """
-        Validate that a ZIP file is a DOCX document.
-
-        DOCX files must contain [Content_Types].xml file.
-
-        Args:
-            file_path: Path to the file
-
-        Returns:
-            True if valid DOCX, False otherwise
-        """
-        try:
-            import zipfile
-            with zipfile.ZipFile(file_path, 'r') as zf:
-                # Check for required DOCX files
-                return '[Content_Types].xml' in zf.namelist()
-        except (zipfile.BadZipFile, IOError):
-            return False
-
-    def _detect_by_extension(self, file_path: Path) -> FileType:
-        """
-        Detect file type by file extension.
-
-        Args:
-            file_path: Path to the file
-
-        Returns:
-            FileType if matched, FileType.UNKNOWN otherwise
-        """
-        extension = file_path.suffix.lower()
-        return self.EXTENSION_MAP.get(extension, FileType.UNKNOWN)
-
-    def is_supported(self, file_path: Path) -> bool:
-        """
-        Check if file type is supported.
-
-        Args:
-            file_path: Path to the file
-
-        Returns:
-            True if file type is supported, False otherwise
-        """
-        file_type = self.detect(file_path)
+    @classmethod
+    def is_supported(cls, file_type: FileType) -> bool:
+        """Check if file type is supported."""
         return file_type != FileType.UNKNOWN
 
-    def get_supported_extensions(self) -> list[str]:
-        """
-        Get list of supported file extensions.
+    @classmethod
+    def get_parser_class(cls, file_type: FileType):
+        """Get appropriate parser class for file type."""
+        from src.ingestion.parsers.pdf import PDFDocumentParser
+        from src.ingestion.parsers.docx import DOCXDocumentParser
+        from src.ingestion.parsers.txt import TextDocumentParser
+        from src.ingestion.parsers.md import MarkdownDocumentParser
+        from src.ingestion.parsers.json import JSONDocumentParser
 
-        Returns:
-            List of supported extensions
-        """
-        return list(self.EXTENSION_MAP.keys())
+        parsers = {
+            FileType.PDF: PDFDocumentParser,
+            FileType.DOCX: DOCXDocumentParser,
+            FileType.DOC: DOCXDocumentParser,
+            FileType.TXT: TextDocumentParser,
+            FileType.MARKDOWN: MarkdownDocumentParser,
+            FileType.JSON: JSONDocumentParser,
+        }
+
+        parser_class = parsers.get(file_type)
+        if not parser_class:
+            raise IngestError(f"No parser available for: {file_type.value}")
+
+        return parser_class
