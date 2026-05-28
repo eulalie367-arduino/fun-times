@@ -1,0 +1,65 @@
+project:
+  name: RAG Pipeline
+  version: 1.0.0
+  environment: development
+
+embedding:
+  model: sentence-transformers/all-MiniLM-L6-v2
+  batch_size: 32
+  cache_embeddings: true
+
+chunking:
+  size: 512
+  overlap: 100
+  min_length: 10
+  max_length: 2000
+
+retrieval:
+  top_k: 5
+  similarity_threshold: 0.5
+  reranking_enabled: false
+  deduplication_enabled: true
+
+vector_store:
+  type: chromadb
+  mode: persistent
+  path: /data/chroma
+  host: localhost
+  port: 8000
+
+cache:
+  enabled: true
+  ttl: 3600
+  backend: memory  # memory or redis
+  redis_url: redis://localhost:6379
+
+llm:
+  model: claude-opus-4-6
+  max_tokens: 2048
+  temperature: 0.7
+  timeout: 30
+
+logging:
+  level: INFO
+  format: json
+  file: /logs/rag.log
+  max_size_mb: 100
+  backup_count: 5
+  console_output: true
+
+monitoring:
+  enabled: true
+  prometheus_port: 9090
+  health_check_interval: 60
+
+security:
+  rate_limit_requests: 100
+  rate_limit_window: 3600
+  input_validation: true
+  sanitize_prompts: true
+
+performance:
+  batch_processing: true
+  async_enabled: true
+  thread_pool_size: 4
+  query_timeout: 30
