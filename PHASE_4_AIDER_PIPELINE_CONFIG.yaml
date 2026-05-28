@@ -1,0 +1,577 @@
+# Phase 4: Lean, Searchable, Correlation-Aware RAG Pipeline
+# aider-pipeline Configuration
+
+project:
+  name: "RAG Pipeline Phase 4"
+  version: "4.0.0"
+  status: "Planning"
+  start_date: "2026-05-28"
+  estimated_duration: "6-7 weeks"
+
+# Define the workflow phases
+phases:
+  - name: "Phase 4A: Lean Optimization"
+    duration: "2 weeks"
+    parallel: false
+    dependencies: []
+    description: "Memory, latency, token, and storage optimization"
+    goals:
+      - "30% memory reduction (2GB → 1.4GB)"
+      - "50% latency reduction (1800ms → 900ms cold)"
+      - "25% token reduction (2670 → 1430 tokens)"
+      - "40% storage reduction (2600MB → 1560MB)"
+
+    steps:
+      - name: "Memory Profiling"
+        duration: "2 days"
+        description: "Establish baseline metrics and identify bottlenecks"
+        files_to_create:
+          - "src/profiling/baseline_profiler.py"
+          - "src/profiling/memory_profiler.py"
+          - "src/profiling/latency_profiler.py"
+          - "src/profiling/token_counter.py"
+        deliverables:
+          - "baseline_metrics_2026_05_28.json"
+          - "docs/PHASE_3_BASELINE_METRICS.md"
+        test_commands:
+          - "python src/profiling/baseline_profiler.py --mode full"
+        owner: "engineer-1"
+
+      - name: "Model Quantization"
+        duration: "2 days"
+        description: "Quantize embeddings and cross-encoder models to INT8"
+        files_to_create:
+          - "src/embeddings_quantized.py"
+          - "src/quantization/model_quantizer.py"
+          - "src/quantization/reranker_quantizer.py"
+          - "src/quantization/quantization_utils.py"
+        dependencies: ["Memory Profiling"]
+        test_commands:
+          - "pytest tests/test_quantization.py -v"
+        owner: "ml-engineer"
+
+      - name: "Vector & Index Compression"
+        duration: "2 days"
+        description: "Compress vector store and BM25 index"
+        files_to_create:
+          - "src/retrieval/vector_store_optimizer.py"
+          - "src/retrieval/bm25_optimizer.py"
+          - "src/retrieval/smart_cache.py"
+          - "src/retrieval/metadata_store.py"
+        dependencies: ["Model Quantization"]
+        test_commands:
+          - "pytest tests/test_compression.py -v"
+        owner: "engineer-1"
+
+      - name: "Query Latency Optimization"
+        duration: "2 days"
+        description: "Accelerate search with HNSW and parallel processing"
+        files_to_create:
+          - "src/retrieval/accelerated_bm25.py"
+          - "src/retrieval/hnsw_layer.py"
+          - "src/retrieval/query_planner.py"
+          - "src/retrieval/optimized_retriever.py"
+        dependencies: ["Vector & Index Compression"]
+        test_commands:
+          - "pytest tests/test_latency_optimization.py -v"
+        owner: "engineer-1"
+
+      - name: "Database Optimization"
+        duration: "2 days"
+        description: "Connection pooling, batching, and indexing"
+        files_to_create:
+          - "src/database/connection_pool.py"
+          - "src/database/batch_optimizer.py"
+          - "db/migrations/add_phase4_indices.sql"
+        dependencies: ["Query Latency Optimization"]
+        test_commands:
+          - "pytest tests/test_database_optimization.py -v"
+        owner: "devops-engineer"
+
+      - name: "Phase 4A Integration & Testing"
+        duration: "1 day"
+        description: "Integrate all components and run comprehensive benchmarks"
+        test_commands:
+          - "pytest tests/benchmark_phase4a.py -v"
+          - "pytest tests/test_lean_optimization.py -v"
+          - "pytest tests/test_hybrid_search.py -v"  # Regression
+        owner: "qa-engineer"
+        success_criteria:
+          - "Memory: 1400MB (30% reduction from 2000MB)"
+          - "Latency cold: 900ms (50% reduction from 1800ms)"
+          - "Tokens: 1430 (46% reduction from 2670)"
+          - "Storage: 950MB (63% reduction from 2600MB)"
+          - "Phase 3 regression: 100% pass rate"
+
+  - name: "Phase 4B: Searchable Index"
+    duration: "2-3 weeks"
+    parallel: false
+    dependencies: ["Phase 4A"]
+    description: "Advanced search, faceting, ranking, and analytics"
+    goals:
+      - "<100ms search latency (p95)"
+      - ">0.90 search precision"
+      - "<50ms faceted search"
+      - "1M+ document scale"
+
+    steps:
+      - name: "Full-Text & Semantic Search"
+        duration: "2 days"
+        description: "Advanced search with 10+ query types"
+        files_to_create:
+          - "src/retrieval/advanced_fulltext.py"
+          - "src/retrieval/field_search.py"
+          - "src/retrieval/query_expansion.py"
+          - "src/retrieval/intent_classifier.py"
+          - "src/retrieval/multi_query.py"
+          - "src/retrieval/semantic_dedup.py"
+        owner: "engineer-2"
+
+      - name: "Faceted Search & Filtering"
+        duration: "2 days"
+        description: "Faceted navigation with <50ms latency"
+        files_to_create:
+          - "src/retrieval/faceted_search.py"
+          - "src/retrieval/filter_engine.py"
+          - "src/retrieval/filter_index.py"
+        dependencies: ["Full-Text & Semantic Search"]
+        owner: "engineer-2"
+
+      - name: "Ranking & Personalization"
+        duration: "2 days"
+        description: "Learning-to-rank and personalized ranking"
+        files_to_create:
+          - "src/retrieval/learning_to_rank.py"
+          - "src/retrieval/personalized_ranking.py"
+          - "src/retrieval/diversity_ranking.py"
+          - "src/retrieval/temporal_ranking.py"
+          - "src/retrieval/popularity_ranking.py"
+        dependencies: ["Faceted Search & Filtering"]
+        owner: "ml-engineer"
+
+      - name: "Query Suggestions & Autocomplete"
+        duration: "2 days"
+        description: "Query suggestion engine with <50ms latency"
+        files_to_create:
+          - "src/retrieval/query_suggester.py"
+          - "src/retrieval/autocomplete.py"
+          - "src/retrieval/personalized_suggester.py"
+          - "src/retrieval/related_queries.py"
+        dependencies: ["Ranking & Personalization"]
+        owner: "engineer-2"
+
+      - name: "Search Analytics"
+        duration: "2 days"
+        description: "Analytics framework for search metrics"
+        files_to_create:
+          - "src/analytics/query_analytics.py"
+          - "src/analytics/click_tracking.py"
+          - "src/analytics/search_quality.py"
+          - "src/analytics/ab_testing.py"
+          - "src/analytics/search_reports.py"
+        dependencies: ["Query Suggestions & Autocomplete"]
+        owner: "engineer-2"
+
+      - name: "Phase 4B Integration & Testing"
+        duration: "1 day"
+        description: "Integrate searchable features and validate"
+        files_to_create:
+          - "src/retrieval/searchable_retriever.py"
+        test_commands:
+          - "pytest tests/test_searchable_features.py -v"
+          - "pytest tests/benchmark_phase4b.py -v"
+          - "pytest tests/test_hybrid_search.py -v"  # Regression
+        owner: "qa-engineer"
+        success_criteria:
+          - "Search latency p95: <100ms"
+          - "Search precision: >0.90"
+          - "Faceted search: <50ms"
+          - "Suggestion latency: <50ms"
+          - "1M+ documents: tested"
+          - "Phase 3 regression: 100% pass"
+
+  - name: "Phase 4C: Correlation Engine"
+    duration: "2 weeks"
+    parallel: false
+    dependencies: ["Phase 4B"]
+    description: "Entity extraction, relationships, and knowledge graphs"
+    goals:
+      - ">95% entity extraction precision"
+      - "10+ relationship types"
+      - "<100ms KG queries"
+      - "<200ms document correlation"
+
+    steps:
+      - name: "Entity Extraction & Linking"
+        duration: "2 days"
+        description: "NER and entity disambiguation"
+        files_to_create:
+          - "src/correlation/entity_extractor.py"
+          - "src/correlation/entity_linker.py"
+          - "src/correlation/entity_store.py"
+          - "src/correlation/coreference_resolver.py"
+        owner: "ml-engineer"
+
+      - name: "Relationship Detection"
+        duration: "2 days"
+        description: "Extract 10+ relationship types"
+        files_to_create:
+          - "src/correlation/relationship_detector.py"
+          - "src/correlation/relation_extractor.py"
+          - "src/correlation/confidence_scorer.py"
+        dependencies: ["Entity Extraction & Linking"]
+        owner: "ml-engineer"
+
+      - name: "Cross-Document Correlation"
+        duration: "2 days"
+        description: "Find related documents with <200ms latency"
+        files_to_create:
+          - "src/correlation/document_network.py"
+          - "src/correlation/topic_correlation.py"
+          - "src/correlation/entity_correlation.py"
+          - "src/correlation/metadata_correlation.py"
+        dependencies: ["Relationship Detection"]
+        owner: "engineer-3"
+
+      - name: "Temporal & Causal Analysis"
+        duration: "2 days"
+        description: "Timeline building and causal inference"
+        files_to_create:
+          - "src/correlation/event_extractor.py"
+          - "src/correlation/timeline_builder.py"
+          - "src/correlation/temporal_reasoner.py"
+          - "src/correlation/event_correlation.py"
+          - "src/correlation/causal_detector.py"
+          - "src/correlation/causal_graph.py"
+          - "src/correlation/counterfactual.py"
+        dependencies: ["Cross-Document Correlation"]
+        owner: "engineer-3"
+
+      - name: "Knowledge Graph Integration"
+        duration: "2 days"
+        description: "Knowledge graph with real-time queries"
+        files_to_create:
+          - "src/correlation/knowledge_graph.py"
+          - "src/correlation/graph_query.py"
+          - "src/correlation/graph_reasoner.py"
+          - "src/correlation/graph_visualizer.py"
+        dependencies: ["Temporal & Causal Analysis"]
+        owner: "engineer-3"
+
+      - name: "Phase 4C Integration & Testing"
+        duration: "1 day"
+        description: "Integrate correlation features and validate"
+        test_commands:
+          - "pytest tests/test_correlation_features.py -v"
+          - "pytest tests/test_knowledge_graph.py -v"
+          - "pytest tests/benchmark_phase4c.py -v"
+          - "pytest tests/test_hybrid_search.py -v"  # Regression
+        owner: "qa-engineer"
+        success_criteria:
+          - "Entity extraction: >95% precision"
+          - "Relationship types: 10+"
+          - "KG queries: <100ms p95"
+          - "Document correlation: <200ms"
+          - "Causal confidence: >85%"
+          - "Phase 3 regression: 100% pass"
+
+  - name: "Staging Deployment"
+    duration: "1 week"
+    parallel: false
+    dependencies: ["Phase 4C"]
+    description: "Full validation in staging environment"
+
+    steps:
+      - name: "Deploy Phase 4A to Staging"
+        duration: "1 day"
+        owner: "devops-engineer"
+
+      - name: "Deploy Phase 4B to Staging"
+        duration: "1 day"
+        owner: "devops-engineer"
+
+      - name: "Deploy Phase 4C to Staging"
+        duration: "1 day"
+        owner: "devops-engineer"
+
+      - name: "Full Staging Validation"
+        duration: "2 days"
+        owner: "qa-engineer"
+        test_commands:
+          - "pytest tests/ -v --tb=short"
+          - "bash tests/load_test_1m_documents.sh"
+          - "bash tests/security_scan.sh"
+
+      - name: "Stakeholder Approval"
+        duration: "1 day"
+        owner: "product-manager"
+
+  - name: "Production Rollout"
+    duration: "2 weeks"
+    parallel: false
+    dependencies: ["Staging Deployment"]
+    description: "Gradual rollout to production"
+
+    steps:
+      - name: "Phase 4A Canary (1%)"
+        duration: "1 day"
+        owner: "devops-engineer"
+
+      - name: "Phase 4A Gradual Rollout (100%)"
+        duration: "3 days"
+        owner: "devops-engineer"
+
+      - name: "Phase 4B Canary (1%)"
+        duration: "1 day"
+        owner: "devops-engineer"
+
+      - name: "Phase 4B Gradual Rollout (100%)"
+        duration: "3 days"
+        owner: "devops-engineer"
+
+      - name: "Phase 4C Canary (1%)"
+        duration: "1 day"
+        owner: "devops-engineer"
+
+      - name: "Phase 4C Gradual Rollout (100%)"
+        duration: "3 days"
+        owner: "devops-engineer"
+
+      - name: "Production Validation"
+        duration: "3 days"
+        owner: "devops-engineer"
+        test_commands:
+          - "bash monitoring/health_check.sh"
+          - "bash monitoring/performance_metrics.sh"
+
+# Metrics and success criteria
+metrics:
+  phase_4a:
+    memory_reduction:
+      baseline: 2000
+      target: 1400
+      unit: "MB"
+      target_percentage: 30
+    latency_reduction_cold:
+      baseline: 1800
+      target: 900
+      unit: "ms"
+      target_percentage: 50
+    token_reduction:
+      baseline: 2670
+      target: 1430
+      unit: "tokens"
+      target_percentage: 46
+    storage_reduction:
+      baseline: 2600
+      target: 1560
+      unit: "MB"
+      target_percentage: 40
+
+  phase_4b:
+    search_latency_p95:
+      target: 100
+      unit: "ms"
+      requirement: "must_meet"
+    search_precision:
+      target: 0.90
+      unit: "score"
+      requirement: "must_meet"
+    faceted_search_latency:
+      target: 50
+      unit: "ms"
+      requirement: "must_meet"
+    suggestion_latency:
+      target: 50
+      unit: "ms"
+      requirement: "must_meet"
+    document_scale:
+      target: 1000000
+      unit: "documents"
+      requirement: "must_support"
+
+  phase_4c:
+    entity_extraction_precision:
+      target: 0.95
+      unit: "precision"
+      requirement: "must_meet"
+    relationship_types:
+      target: 10
+      unit: "types"
+      requirement: "must_meet"
+    kg_query_latency_p95:
+      target: 100
+      unit: "ms"
+      requirement: "must_meet"
+    document_correlation_latency:
+      target: 200
+      unit: "ms"
+      requirement: "must_meet"
+    causal_confidence:
+      target: 0.85
+      unit: "score"
+      requirement: "must_meet"
+
+  overall:
+    test_coverage:
+      target: 0.95
+      unit: "percentage"
+    test_count:
+      target: 500
+      unit: "tests"
+    backward_compatibility:
+      target: 1.0
+      unit: "ratio"
+      requirement: "must_be_100_percent"
+    documentation_pages:
+      target: 100
+      unit: "pages"
+
+# Rollback strategy
+rollback:
+  enabled: true
+  strategy: "immediate"
+  procedures:
+    phase_4a:
+      action: "Revert to Phase 3 optimizations disabled"
+      time_to_rollback: "5 minutes"
+      zero_data_loss: true
+    phase_4b:
+      action: "Disable new search features"
+      time_to_rollback: "5 minutes"
+      zero_data_loss: true
+    phase_4c:
+      action: "Disable correlation features"
+      time_to_rollback: "5 minutes"
+      zero_data_loss: true
+
+# Resource requirements
+resources:
+  team:
+    - role: "Full-stack Engineer"
+      count: 2
+      weeks: 7
+      primary_phases: ["4A", "4B"]
+    - role: "ML Engineer"
+      count: 1
+      weeks: 4
+      primary_phases: ["4A", "4C"]
+    - role: "DevOps Engineer"
+      count: 1
+      weeks: 7
+      primary_phases: ["4A", "Staging", "Production"]
+    - role: "QA Engineer"
+      count: 1
+      weeks: 7
+      primary_phases: ["Testing", "Staging", "Production"]
+
+  infrastructure:
+    development:
+      - "GPU access for model optimization"
+      - "High-memory machines (16GB+)"
+      - "Vector database test instances"
+    staging:
+      - "Full production replica"
+      - "Load testing infrastructure"
+      - "Monitoring stack"
+    production:
+      - "Additional memory for optimized indices"
+      - "Graph database (Neo4j)"
+      - "Search analytics infrastructure"
+
+# Dependencies
+dependencies:
+  python_packages:
+    phase_4a:
+      - "onnx>=1.14"
+      - "onnxruntime>=1.16"
+      - "psutil>=5.9"
+      - "memory-profiler>=0.61"
+      - "numpy>=1.24"
+      - "scipy>=1.10"
+    phase_4b:
+      - "whoosh>=2.7"
+      - "scikit-learn>=1.3"
+      - "redis>=5.0"
+      - "transformers>=4.30"
+    phase_4c:
+      - "spacy>=3.6"
+      - "transformers>=4.30"
+      - "networkx>=3.1"
+      - "py2neo>=2022.12"
+
+  external_services:
+    - "ChromaDB (existing)"
+    - "Whoosh (existing)"
+    - "Neo4j (new graph database)"
+    - "Redis (new for suggestions cache)"
+
+# Documentation requirements
+documentation:
+  - "PHASE_4_IMPROVEMENT_PLAN.md (70 pages)"
+  - "PHASE_4_IMPLEMENTATION_ROADMAP.md (50 pages)"
+  - "PHASE_4_OPTIMIZATION_GUIDE.md (40 pages)"
+  - "PHASE_4_SEARCH_GUIDE.md (40 pages)"
+  - "PHASE_4_CORRELATION_GUIDE.md (30 pages)"
+  - "PHASE_4_API_REFERENCE.md (60 pages)"
+  - "PHASE_4_OPERATIONS_GUIDE.md (30 pages)"
+  - "Total: 320+ pages"
+
+# Workflow execution
+workflow:
+  name: "Phase 4: Lean, Searchable, Correlation-Aware RAG"
+  type: "sequential"
+  total_phases: 3
+  parallel_execution: false
+  estimated_total_duration: "7 weeks"
+  critical_path:
+    - "Phase 4A (2 weeks)"
+    - "Phase 4B (2 weeks)"
+    - "Phase 4C (2 weeks)"
+    - "Staging (1 week)"
+    - "Production (2 weeks)"
+
+  checkpoints:
+    - "Phase 4A complete: Memory/latency/token optimization verified"
+    - "Phase 4B complete: Advanced search features validated"
+    - "Phase 4C complete: Correlation engine tested"
+    - "Staging complete: Full validation passed"
+    - "Production: 100% rollout achieved"
+
+# Success definition
+success_criteria:
+  phase_4a:
+    - "Memory reduced by 30% (2000MB → 1400MB)"
+    - "Latency reduced by 50% (1800ms → 900ms cold)"
+    - "Tokens reduced by 46% (2670 → 1430)"
+    - "Storage reduced by 63% (2600MB → 950MB)"
+    - "100% backward compatible with Phase 3"
+    - "All tests passing"
+    - "Zero breaking changes"
+
+  phase_4b:
+    - "Search latency <100ms p95"
+    - "Search precision >0.90"
+    - "Faceted search <50ms"
+    - "Suggestion latency <50ms"
+    - "1M+ documents supported"
+    - "All tests passing"
+    - "100% backward compatible"
+
+  phase_4c:
+    - "Entity extraction >95% precision"
+    - "10+ relationship types detected"
+    - "KG queries <100ms p95"
+    - "Document correlation <200ms"
+    - "Causal confidence >85%"
+    - "All tests passing"
+    - "100% backward compatible"
+
+  overall:
+    - "95%+ test coverage"
+    - "500+ tests created"
+    - "320+ pages documentation"
+    - "Zero security vulnerabilities"
+    - "Production-ready code"
+    - "Complete aider-pipeline integration"
+
