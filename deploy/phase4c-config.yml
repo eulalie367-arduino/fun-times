@@ -1,0 +1,172 @@
+deployment:
+  environment: production
+  strategy: progressive  # Progressive knowledge graph building
+  canary:
+    enabled: true
+    percentage: 5
+    duration_hours: 48
+    sample_documents: 10000
+
+  rolling:
+    enabled: true
+    percentage: 25
+    duration_hours: 48
+    sample_documents: 100000
+
+modules:
+  ner_model:
+    enabled: true
+    entity_types:
+      - PERSON
+      - ORG
+      - LOCATION
+      - DATE
+      - EMAIL
+      - URL
+    confidence_threshold: 0.7
+    batch_size: 500
+
+  entity_linker:
+    enabled: true
+    knowledge_base_mode: in_memory  # Can switch to neo4j in phase 5
+    fuzzy_matching: true
+    max_match_distance: 2
+    alias_support: true
+    batch_size: 500
+
+  relationship_extractor:
+    enabled: true
+    relationship_types:
+      - knows
+      - works_for
+      - married_to
+      - owns
+      - located_in
+      - created
+      - published_in
+      - affiliated_with
+      - related_to
+      - member_of
+    confidence_threshold: 0.6
+    context_window_tokens: 100
+
+  knowledge_graph:
+    enabled: true
+    storage: in_memory  # Phase 5: add neo4j backend
+    max_entities: 1000000
+    max_relationships: 5000000
+    graph_algorithms:
+      - shortest_path
+      - community_detection
+      - centrality_analysis
+
+  correlation_engine:
+    enabled: true
+    correlation_types:
+      - co_occurrence
+      - temporal
+      - document_similarity
+    co_occurrence:
+      min_pmi_threshold: 10
+      window_size_tokens: 512
+    temporal:
+      time_window_seconds: 3600
+      min_co_occurrences: 3
+    document_similarity:
+      method: jaccard
+      threshold: 0.5
+
+  timeline_builder:
+    enabled: true
+    event_detection: true
+    concurrent_event_window_seconds: 300
+    min_events_for_timeline: 2
+    timeline_granularity: second
+
+processing:
+  ner_threads: 4
+  entity_linking_threads: 4
+  relationship_extraction_threads: 4
+  kg_construction_threads: 4
+
+  pipeline_mode: streaming  # Process documents as they arrive
+  batch_size: 1000
+  processing_timeout_seconds: 300
+
+caching:
+  entity_cache_size_mb: 100
+  relationship_cache_size_mb: 100
+  path_cache_size_mb: 50
+  ttl_minutes: 60
+
+monitoring:
+  metrics:
+    - name: entity_extraction_accuracy
+      threshold: 0.95
+      alert_on: below
+
+    - name: entity_linking_f1_score
+      threshold: 0.90
+      alert_on: below
+
+    - name: kg_query_latency_ms
+      threshold: 100
+      alert_on: exceed
+
+    - name: timeline_build_latency_ms
+      threshold: 500
+      alert_on: exceed
+
+    - name: correlation_detection_rate
+      threshold: 0.80
+      alert_on: below
+
+    - name: relationship_extraction_precision
+      threshold: 0.85
+      alert_on: below
+
+  performance_targets:
+    entity_accuracy: 0.95
+    entity_linking_f1: 0.90
+    kg_query_latency: 100  # ms
+    timeline_build_time: 500  # ms per query
+    relationship_extraction_precision: 0.85
+    correlation_significance_threshold: 10  # PMI
+
+validation:
+  gold_standard_entities: 1000
+  gold_standard_relationships: 500
+  validation_interval_documents: 10000
+  alert_if_accuracy_drops_below:
+    entity_extraction: 0.92
+    entity_linking: 0.87
+    relationship_extraction: 0.82
+
+rollback:
+  enabled: true
+  automatic_on_health_check_failure: true
+  procedure:
+    - name: disable_correlation_features
+      timeout_seconds: 10
+    - name: fallback_to_previous_kg
+      timeout_seconds: 30
+    - name: clear_correlation_cache
+      timeout_seconds: 10
+    - name: verify_fallback_health
+      timeout_seconds: 30
+    - name: notify_team
+      method: slack_and_email
+
+post_deployment:
+  kg_retention_days: 30  # Phase 5: add persistence to neo4j
+  validate_kg_construction: true
+  measure_path_query_performance: true
+  analyze_entity_distribution: true
+  generate_correlation_statistics: true
+
+phase5_enhancements:
+  neo4j_backend: planned
+  gpu_accelerated_ner: planned
+  semantic_entity_linking: planned
+  advanced_relationship_types: planned
+  temporal_reasoning: planned

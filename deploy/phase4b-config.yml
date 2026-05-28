@@ -1,0 +1,146 @@
+deployment:
+  environment: production
+  strategy: parallel-indexing  # Build indices in parallel with live queries
+  canary:
+    enabled: true
+    percentage: 5
+    duration_hours: 48
+
+  rolling:
+    enabled: true
+    percentage: 25
+    duration_hours: 48
+
+modules:
+  full_text_index:
+    enabled: true
+    index_type: inverted
+    tokenizer: whitespace
+    min_term_length: 2
+    stem_words: true
+
+  bm25_scorer:
+    enabled: true
+    k1: 1.5
+    b: 0.75
+    calibration_docs: 10000
+
+  faceted_search:
+    enabled: true
+    facet_limit: 1000
+    value_suggestions: true
+    min_facet_frequency: 1
+    range_facets:
+      - name: date
+        type: numeric
+      - name: price
+        type: numeric
+
+  rank_model:
+    enabled: true
+    signal_weights:
+      bm25: 0.4
+      recency: 0.2
+      popularity: 0.2
+      semantic: 0.2
+    learning_to_rank: true
+    calibration_queries: 5000
+
+  query_parser:
+    enabled: true
+    operators:
+      - AND
+      - OR
+      - NOT
+      - "+"
+      - "-"
+    enable_fuzzy_matching: true
+    fuzzy_distance_threshold: 2
+    enable_phrase_search: true
+    enable_field_search: true
+    enable_wildcard_search: true
+
+  suggestion_engine:
+    enabled: true
+    max_suggestions: 10
+    prefix_indexing: true
+    trending_time_window_hours: 24
+    frequency_threshold: 2
+    cleanup_interval_days: 7
+
+  search_analytics:
+    enabled: true
+    track_events: true
+    event_retention_days: 90
+    metrics_update_interval_seconds: 60
+    click_through_tracking: true
+    performance_percentiles:
+      - 50
+      - 75
+      - 95
+      - 99
+
+indexing:
+  parallel_threads: 8
+  batch_size: 1000
+  index_rebuild_interval_hours: 24
+  incremental_updates: true
+  compression:
+    enabled: true
+    algorithm: delta_zlib
+    target_ratio: 0.75
+
+monitoring:
+  metrics:
+    - name: search_latency_p95_ms
+      threshold: 100
+      alert_on: exceed
+
+    - name: index_compression_ratio
+      threshold: 0.75
+      alert_on: below
+
+    - name: query_parsing_latency_ms
+      threshold: 5
+      alert_on: exceed
+
+    - name: facet_query_latency_ms
+      threshold: 20
+      alert_on: exceed
+
+    - name: autocomplete_latency_ms
+      threshold: 50
+      alert_on: exceed
+
+    - name: indexing_throughput_docs_per_sec
+      threshold: 1000
+      alert_on: below
+
+  performance_targets:
+    search_latency_p95: 100  # ms
+    index_compression_ratio: 0.75  # 25% reduction
+    query_parsing_latency: 5  # ms
+    facet_performance: 20  # ms per facet
+    autocomplete_response: 50  # ms
+    indexing_throughput: 1000  # docs/sec
+
+rollback:
+  enabled: true
+  automatic_on_health_check_failure: true
+  procedure:
+    - name: switch_to_old_indices
+      timeout_seconds: 30
+    - name: drain_new_search_traffic
+      timeout_seconds: 60
+    - name: verify_old_index_health
+      timeout_seconds: 30
+    - name: notify_team
+      method: slack_and_email
+
+post_deployment:
+  old_index_retention_days: 30
+  validate_result_quality: true
+  compare_result_ranking: true
+  measure_result_coverage:
+    target_coverage_percent: 99
+    alert_if_below: 98

@@ -55,7 +55,7 @@ class TestLambdaRankTrainer:
         # Create training data
         training_data = []
         for _ in range(10):
-            features = np.random.randn(5, 4)
+            features = np.random.randn(4, 4)
             relevances = np.array([2, 1, 1, 0])
             training_data.append((features, relevances))
 
